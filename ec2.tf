@@ -9,6 +9,7 @@ resource "aws_security_group" "pocketbase_out_sg" {
     to_port     = 8090
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = [ "::/0" ]
   }
 
   egress {
@@ -16,6 +17,7 @@ resource "aws_security_group" "pocketbase_out_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = [ "::/0" ]
   }
 
   tags = merge(var.common_tags, {
@@ -34,6 +36,7 @@ resource "aws_security_group" "pocketbase_http_in_sg" {
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = [ "::/0" ]
   }
 
   egress {
@@ -41,6 +44,7 @@ resource "aws_security_group" "pocketbase_http_in_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = [ "::/0" ]
   }
 
   tags = merge(var.common_tags, {
@@ -86,7 +90,7 @@ fi
 sudo mount /dev/nvme1n1 /mnt/pocketbase
 
 if sudo stat "/mnt/pocketbase/pocketbase" >/dev/null 2>&1; then
-  sudo wget -O /mnt/pocketbase/pocketbase_source.zip https://github.com/pocketbase/pocketbase/releases/download/v0.18.9/pocketbase_0.18.9_linux_arm64.zip
+  sudo wget -O /mnt/pocketbase/pocketbase_source.zip https://github.com/pocketbase/pocketbase/releases/download/v0.21.2/pocketbase_0.21.2_windows_arm64.zip
   sudo unzip /mnt/pocketbase/pocketbase_source.zip
 fi
 

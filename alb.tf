@@ -7,6 +7,7 @@ resource "aws_lb" "pocketbase" {
   subnets                    = data.aws_subnets.subnets_default.ids
   security_groups            = [aws_security_group.pocketbase_out_sg.id, aws_security_group.pocketbase_http_in_sg.id]
   tags                       = var.common_tags
+  ip_address_type            = "dualstack"
 }
 
 resource "aws_lb_target_group" "pocketbase" {

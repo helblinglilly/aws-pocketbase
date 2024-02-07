@@ -1,6 +1,6 @@
 # aws
 
-This terraform setup will deploy Pocketbase to a single EC2 instance and deploy it to a subdomain that you point at Route 53. It will redirect http to https traffic and manage the SSL certificate for you. 
+This terraform setup will deploy Pocketbase to a single EC2 instance and deploy it to a subdomain that you point at Route 53. It will redirect http to https traffic and manage the SSL certificate for you.
 
 Pocketbase will live on its own EBS volume, a snapshot of which will by default be taken every 24h and retained for 7 days. This is the only backup mechanism provided.
 
@@ -20,7 +20,19 @@ Install terraform. It will use the default aws credentials stored on your machin
 
 Create an S3 bucket that will store your terraform state file. Either through the web console, or by using the [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html). Do not allow this bucket to be publicly accessible.
 
-## Terraform 
+### Caution about IPv4 charges
+
+This configuration will work with both IPv4 and v6 subnets. The module will identify your _default_ subnets unless you modify it (see `locals.tf`).
+
+Since 1st February 2024 [AWS is now charging for each IPv4 address](https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/) in use.
+
+This module will create the bare minimum needed, but is not guaranteed.
+
+To avoid unexpected charges, deploy Pocketbase into an IPv6 configured subnet. See `ipv6.md` for Instructions to change this in your defaults.
+
+> An IPAM is included in this setup. This should allow you to monitor how many IPv4 addresses remain in use
+
+## Terraform
 
 ### Init
 
@@ -37,7 +49,7 @@ region = the aws region you want to deploy into
 Run `terraform plan -out=tfplan` and pass any non-default values you wish to configure like this:
 
 ```
-terraform plan 
+terraform plan
 -var="budget_max_amount=[amount in USD]"
 -var="ebs_backup_frequency=[amount in hours]"
 -var="ebs_backup_retention_days=[days]"
@@ -57,6 +69,7 @@ If you ran apply for the first time, you will now need to configure your AWS sub
 # Architecture
 
 ## Diagram
+
 ![Architecture](architecture.png)
 
 ## Pricing estimate
@@ -65,21 +78,24 @@ Prices are based on eu-west-2 and updated as per October 2023
 
 \+ Marks Free Trial
 
-|Resource|Kind|Unit price|Monthly Price|Notes|
-|-|-|-|-|-|
-|EC2|Compute time (t4g.small)|$0.0168/h|$12.60|+ Free|
-|Route 53|1 Hosted Zone|$0.50/domain|$0.50|
-|ELB<br />Elastic Load Balancer|?|?|?|[Link](https://aws.amazon.com/elasticloadbalancing/pricing/)<br /> Application Load Balancer
-|S3|Storage|$0.024/GB|$0.00|+ 5GB<br />Only used for tf state|
-||Write|$0.0053/1000 requests|-|-|
-||Read|$0.0053/1000 requests|-|-|
-|EBS<br />Elastic Block Storage|Root volume|$0.0928/gb|$0.46|+ 30GB<br /> Minimum 5GB|
-||App data|$0.0928/GB|$0.46|+ 30GB<br /> Minimum 5GB|
-||Snapshots|$0.053/GB|$0.265|+ 1GB<br /> Only App data|
-|Cloudwatch|No paid features|-|-|-|
-|SES<br />Simple Email Service|Outbound from EC2|$0.10/1000 emails|$0.00|+ 3000 messages<br />In and outbound|
-||Inbound|$0.10/1000 emails|$0.00|+ 3000 messages<br />In and outbound|
-|SNS<br />Simple notification service|Messages|1 million free|$0.00|Then $0.50/million|
-||||Estimates||
-||Free Tier|Idle - No traffic|>= $0.50|Plus Tax|
-|||Idle - No traffic|>= $14.28|Plus Tax|
+| Resource                             | Kind                     | Unit price            | Monthly Price | Notes                                                                                        |
+| ------------------------------------ | ------------------------ | --------------------- | ------------- | -------------------------------------------------------------------------------------------- |
+| EC2                                  | Compute time (t4g.small) | $0.0168/h             | $12.60        | + Free                                                                                       |
+| Route 53                             | 1 Hosted Zone            | $0.50/domain          | $0.50         |                                                                                              |
+| VPC                                  | 1x IPv4 Address          | $0.005/h              | $3.72         | Can be avoided if following `ipv6.md`                                                        |
+| ELB<br />Elastic Load Balancer       | ?                        | ?                     | ?             | [Link](https://aws.amazon.com/elasticloadbalancing/pricing/)<br /> Application Load Balancer |
+| S3                                   | Storage                  | $0.024/GB             | $0.00         | + 5GB<br />Only used for tf state                                                            |
+|                                      | Write                    | $0.0053/1000 requests | -             | -                                                                                            |
+|                                      | Read                     | $0.0053/1000 requests | -             | -                                                                                            |
+| EBS<br />Elastic Block Storage       | Root volume              | $0.0928/gb            | $0.46         | + 30GB<br /> Minimum 5GB                                                                     |
+|                                      | App data                 | $0.0928/GB            | $0.46         | + 30GB<br /> Minimum 5GB                                                                     |
+|                                      | Snapshots                | $0.053/GB             | $0.265        | + 1GB<br /> Only App data                                                                    |
+| Cloudwatch                           | No paid features         | -                     | -             | -                                                                                            |
+| SES<br />Simple Email Service        | Outbound from EC2        | $0.10/1000 emails     | $0.00         | + 3000 messages<br />In and outbound                                                         |
+|                                      | Inbound                  | $0.10/1000 emails     | $0.00         | + 3000 messages<br />In and outbound                                                         |
+| SNS<br />Simple notification service | Messages                 | 1 million free        | $0.00         | Then $0.50/million                                                                           |
+|                                      |                          |                       | Estimates     |                                                                                              |
+|                                      | Free Tier                | Idle - ipv6           | >= $0.50      | Plus Tax                                                                                     |
+|                                      |                          | Idle - ipv6           | >= $14.28     | Plus Tax                                                                                     |
+|                                      | Free Tier                | Idle - ipv4           | >= $4.22      | Plus Tax                                                                                     |
+|                                      |                          | Idle - ipv4           | >= $18.00     | Plus Tax                                                                                     |
