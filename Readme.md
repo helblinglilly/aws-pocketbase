@@ -82,7 +82,7 @@ Prices are based on eu-west-2 and updated as per October 2023
 | ------------------------------------ | ------------------------ | --------------------- | ------------- | -------------------------------------------------------------------------------------------- |
 | EC2                                  | Compute time (t4g.small) | $0.0168/h             | $12.60        | + Free                                                                                       |
 | Route 53                             | 1 Hosted Zone            | $0.50/domain          | $0.50         |                                                                                              |
-| VPC                                  | 1x IPv4 Address          | $0.005/h              | $3.72         | Can be avoided if following `ipv6.md`                                                        |
+| VPC                                  | 3x IPv4 Address          | $0.005/h              | $11.16        | Can be avoided if following `ipv6.md`                                                        |
 | ELB<br />Elastic Load Balancer       | ?                        | ?                     | ?             | [Link](https://aws.amazon.com/elasticloadbalancing/pricing/)<br /> Application Load Balancer |
 | S3                                   | Storage                  | $0.024/GB             | $0.00         | + 5GB<br />Only used for tf state                                                            |
 |                                      | Write                    | $0.0053/1000 requests | -             | -                                                                                            |
@@ -95,7 +95,5 @@ Prices are based on eu-west-2 and updated as per October 2023
 |                                      | Inbound                  | $0.10/1000 emails     | $0.00         | + 3000 messages<br />In and outbound                                                         |
 | SNS<br />Simple notification service | Messages                 | 1 million free        | $0.00         | Then $0.50/million                                                                           |
 |                                      |                          |                       | Estimates     |                                                                                              |
-|                                      | Free Tier                | Idle - ipv6           | >= $0.50      | Plus Tax                                                                                     |
-|                                      |                          | Idle - ipv6           | >= $14.28     | Plus Tax                                                                                     |
-|                                      | Free Tier                | Idle - ipv4           | >= $4.22      | Plus Tax                                                                                     |
-|                                      |                          | Idle - ipv4           | >= $18.00     | Plus Tax                                                                                     |
+|                                      | Free Tier                | Idle - ipv4           | >= $11.66     | Plus Tax                                                                                     |
+|                                      |                          | Idle - ipv4           | >= $24.54     | Plus Tax                                                                                     |
