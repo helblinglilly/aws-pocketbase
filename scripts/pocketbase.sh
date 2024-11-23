@@ -55,7 +55,7 @@ if systemctl list-unit-files --type=service | grep -q "^${NAME}"; then
 fi
 
 # Download executable
-sudo wget -O pocketbase_source.zip "https://github.com/pocketbase/pocketbase/releases/download/v$VERSION/pocketbase_${VERSION}_linux_amd64.zip"
+sudo wget -O pocketbase_source.zip "https://github.com/pocketbase/pocketbase/releases/download/v$VERSION/pocketbase_${VERSION}_linux_arm64.zip"
 sudo unzip -o pocketbase_source.zip
 sudo rm -rf pocketbase_source.zip
 
