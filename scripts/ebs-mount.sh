@@ -21,3 +21,11 @@ if ! sudo blkid /dev/nvme1n1; then
 fi
 
 sudo mount /dev/nvme1n1 /mnt/pocketbase
+
+# Dependencies for reverse proxy
+sudo yum update -y
+sudo yum install nginx -y
+
+# Dependencies for letsencrypt
+sudo yum install python3-pip -y
+sudo pip3 install certbot certbot-nginx
