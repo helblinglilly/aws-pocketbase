@@ -29,3 +29,5 @@ sudo yum install nginx -y
 # Dependencies for letsencrypt
 sudo yum install python3-pip -y
 sudo pip3 install certbot certbot-nginx
+
+sudo systemctl enable nginx
