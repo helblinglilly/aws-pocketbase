@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# ./pocketbase.sh NAME="timesheet" PORT="8090" VERSION="0.22.3"
-
 for ARGUMENT in "$@"
 do
    KEY=$(echo $ARGUMENT | cut -f1 -d=)
@@ -44,7 +42,7 @@ fi
 
 cd $WORKDIR
 
-# Delete service and executable if already exists
+# Delete service entry and executable if already exists
 if systemctl list-unit-files --type=service | grep -q "^${NAME}"; then
     # Stop the service if it's running
     if systemctl is-active --quiet "$SERVICE_NAME"; then

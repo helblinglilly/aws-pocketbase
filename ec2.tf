@@ -4,20 +4,20 @@ resource "aws_security_group" "pocketbase_out_sg" {
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "Allow Pocketbase Traffic to go anywhere"
-    from_port   = 443
-    to_port     = 8090
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = [ "::/0" ]
+    description      = "Allow Pocketbase Traffic to go anywhere"
+    from_port        = 443
+    to_port          = 8090
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = [ "::/0" ]
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   tags = merge(var.common_tags, {
@@ -31,20 +31,20 @@ resource "aws_security_group" "pocketbase_http_in_sg" {
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "Redirect http traffic to https"
-    from_port   = 80
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = [ "::/0" ]
+    description      = "Redirect http traffic to https"
+    from_port        = 80
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = [ "::/0" ]
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   tags = merge(var.common_tags, {
@@ -68,53 +68,22 @@ resource "aws_instance" "pocketbase" {
   user_data                   = <<EOF
 #!/bin/bash
 
-while [ ! -e /dev/nvme1n1 ]; do
-  echo "Waiting for EBS volume to be attached..."
-  sleep 10
-done
+# Download scripts from this repo
+sudo curl https://raw.githubusercontent.com/helblinglilly/aws-pocketbase/refs/heads/main/scripts/ebs-mount.sh > ebs-mount.sh
+sudo curl https://raw.githubusercontent.com/helblinglilly/aws-pocketbase/refs/heads/main/scripts/pocketbase.sh > pocketbase.sh
 
-if sudo stat "/mnt/pocketbase" >/dev/null 2>&1; then
-  echo "Folder exists."
-else
-    echo "Folder does not exist. New root file system"
-    sudo mkdir /mnt/pocketbase
-    # Configure the EBS volume to be automatically mounted
-    echo "/dev/nvme1n1  /mnt/pocketbase  ext4  defaults,nofail  0  2" | sudo tee -a /etc/fstab
-fi
+# Make them executable
+chmod +x ebs-mount.sh
+chmod +x pocketbase.sh
 
-if ! sudo blkid /dev/nvme1n1; then
-  # EBS has no file system - create one
-  sudo mkfs -t ext4 /dev/nvme1n1
-fi
+./ebs-mount.sh
 
-sudo mount /dev/nvme1n1 /mnt/pocketbase
+./pocketbase.sh NAME="instance_1_name" VERSION="0.22.3" PORT="8090" DOMAIN="your.aws.managed.domain" EMAIL="user@domain.tld"
+./pocketbase.sh NAME="instance_2_name" VERSION="0.22.3" PORT="8091" DOMAIN="your.other.aws.managed.domain" EMAIL="user@domain.tld"
 
-if sudo stat "/mnt/pocketbase/pocketbase" >/dev/null 2>&1; then
-  sudo wget -O /mnt/pocketbase/pocketbase_source.zip https://github.com/pocketbase/pocketbase/releases/download/v0.21.2/pocketbase_0.21.2_windows_arm64.zip
-  sudo unzip /mnt/pocketbase/pocketbase_source.zip
-fi
+# Scripts above restart nginx but do one more for good measure
+sudo systemctl restart nginx
 
-# Set up Pocketbase as a systemd service
-sudo touch /lib/systemd/system/pocketbase.service
-echo "[Unit]
-Description = pocketbase
-
-[Service]
-Type           = simple
-User           = root
-Group          = root
-LimitNOFILE    = 4096
-Restart        = always
-RestartSec     = 5s
-StandardOutput = append:/mnt/pocketbase/errors.log
-StandardError  = append:/mnt/pocketbase/errors.log
-ExecStart      = /mnt/pocketbase/pocketbase serve --http="0.0.0.0:8090"
-
-[Install]
-WantedBy = multi-user.target" | sudo tee -a /lib/systemd/system/pocketbase.service
-
-sudo systemctl enable pocketbase.service
-sudo systemctl start pocketbase
-
+# Do any other setup you'd like
 EOF
 }

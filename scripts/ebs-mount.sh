@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Set up
+# Wait for EBS volume to become available
 while [ ! -e /dev/nvme1n1 ]; do
   echo "Waiting for EBS volume to be attached..."
   sleep 10
@@ -20,6 +20,7 @@ if ! sudo blkid /dev/nvme1n1; then
   sudo mkfs -t ext4 /dev/nvme1n1
 fi
 
+# Mount the file system
 sudo mount /dev/nvme1n1 /mnt/pocketbase
 
 # Dependencies for reverse proxy
@@ -30,4 +31,5 @@ sudo yum install nginx -y
 sudo yum install python3-pip -y
 sudo pip3 install certbot certbot-nginx
 
+# Enable nginx service
 sudo systemctl enable nginx
