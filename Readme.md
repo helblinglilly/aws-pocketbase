@@ -1,14 +1,16 @@
-# aws
+# aws-pocketbase
 
-This terraform setup will deploy Pocketbase to a single EC2 instance and deploy it to a subdomain that you point at Route 53. It will redirect http to https traffic and manage the SSL certificate for you.
+This terraform setup will deploy up to multiple Pocketbase instances to a single EC2 instance and configure subdomains and SSL certificates as well as Cloudwatch resource alerting.
 
-Pocketbase will live on its own EBS volume, a snapshot of which will by default be taken every 24h and retained for 7 days. This is the only backup mechanism provided.
+Pocketbase instances will live on a shared EBS volume separate from the OS, a snapshot of which will by default be taken every 24h and retained for 7 days. This is the only backup mechanism provided.
 
-Pocketbase will be deployed to `pocketbase.yourdomain.tld`
+You will need to set up a subdomain that can be managed by AWS which your Pocketbase instances will be deployed to.
 
-You will still need to bring your own SMTP server. A start has been made to configure SES automatically, but it's still a WIP.
+Email setup is currently not supported. You will need to provide your own SMTP server.
 
-## Get set up
+S3 backups within Pocketbase are not supported out of the box. You will need to provide your own S3 bucket and credentials.
+
+## Getting set up
 
 ### With AWS
 
@@ -16,7 +18,7 @@ Sign into the AWS console.
 
 To get the access keys, go to "Security Credentials" when signed into the root account. Run `aws configure` locally to get set up and insert the access key values in there. Delete those credentials once you're done - it is a bad practice for root credentials to exist.
 
-Install terraform. It will use the default aws credentials stored on your machine.
+Install [terraform](https://developer.hashicorp.com/terraform/install) or [OpenTofu](https://opentofu.org/docs/intro/install/). It will use the default aws credentials stored on your machine.
 
 Create an S3 bucket that will store your terraform state file. Either through the web console, or by using the [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html). Do not allow this bucket to be publicly accessible.
 
@@ -24,15 +26,13 @@ Create an S3 bucket that will store your terraform state file. Either through th
 
 This configuration will work with both IPv4 and v6 subnets. The module will identify your _default_ subnets unless you modify it (see `locals.tf`).
 
-Since 1st February 2024 [AWS is now charging for each IPv4 address](https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/) in use.
-
-This module will create the bare minimum needed, but is not guaranteed.
+Since 1st February 2024 [AWS is now charging for each IPv4 address](https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/) in use. As Load Balancers incurr additional costs, they have been removed from this setup to minimise costs.
 
 To avoid unexpected charges, deploy Pocketbase into an IPv6 configured subnet. See `ipv6.md` for Instructions to change this in your defaults.
 
-> An IPAM is included in this setup. This should allow you to monitor how many IPv4 addresses remain in use
-
 ## Terraform
+
+> If you're using OpenTofu simply replace `terraform` with `tofu`
 
 ### Init
 
@@ -44,11 +44,13 @@ key = name of your terraform state file: Use `terraform.tfstate` if unsure
 
 region = the aws region you want to deploy into
 
+
 ### Plan
 
 Run `terraform plan -out=tfplan` and pass any non-default values you wish to configure like this:
 
 ```
+# Outdated
 terraform plan
 -var="budget_max_amount=[amount in USD]"
 -var="ebs_backup_frequency=[amount in hours]"
@@ -72,28 +74,20 @@ If you ran apply for the first time, you will now need to configure your AWS sub
 
 ![Architecture](architecture.png)
 
-## Pricing estimate
+## Costs
 
-Prices are based on eu-west-2 and updated as per October 2023
+These are non-binding and might differ depending on your region and setup.
 
-\+ Marks Free Trial
+Below is a price breakdown with and without AWS Free Tier based on eu-west-2 with relatively little traffic on t4g.small during its Free Trial.
 
-| Resource                             | Kind                     | Unit price            | Monthly Price | Notes                                                                                        |
-| ------------------------------------ | ------------------------ | --------------------- | ------------- | -------------------------------------------------------------------------------------------- |
-| EC2                                  | Compute time (t4g.small) | $0.0168/h             | $12.60        | + Free                                                                                       |
-| Route 53                             | 1 Hosted Zone            | $0.50/domain          | $0.50         |                                                                                              |
-| VPC                                  | 3x IPv4 Address          | $0.005/h              | $11.16        | Can be avoided if following `ipv6.md`                                                        |
-| ELB<br />Elastic Load Balancer       | ?                        | ?                     | ?             | [Link](https://aws.amazon.com/elasticloadbalancing/pricing/)<br /> Application Load Balancer |
-| S3                                   | Storage                  | $0.024/GB             | $0.00         | + 5GB<br />Only used for tf state                                                            |
-|                                      | Write                    | $0.0053/1000 requests | -             | -                                                                                            |
-|                                      | Read                     | $0.0053/1000 requests | -             | -                                                                                            |
-| EBS<br />Elastic Block Storage       | Root volume              | $0.0928/gb            | $0.46         | + 30GB<br /> Minimum 5GB                                                                     |
-|                                      | App data                 | $0.0928/GB            | $0.46         | + 30GB<br /> Minimum 5GB                                                                     |
-|                                      | Snapshots                | $0.053/GB             | $0.265        | + 1GB<br /> Only App data                                                                    |
-| Cloudwatch                           | No paid features         | -                     | -             | -                                                                                            |
-| SES<br />Simple Email Service        | Outbound from EC2        | $0.10/1000 emails     | $0.00         | + 3000 messages<br />In and outbound                                                         |
-|                                      | Inbound                  | $0.10/1000 emails     | $0.00         | + 3000 messages<br />In and outbound                                                         |
-| SNS<br />Simple notification service | Messages                 | 1 million free        | $0.00         | Then $0.50/million                                                                           |
-|                                      |                          |                       | Estimates     |                                                                                              |
-|                                      | Free Tier                | Idle - ipv4           | >= $11.66     | Plus Tax                                                                                     |
-|                                      |                          | Idle - ipv4           | >= $24.54     | Plus Tax                                                                                     |
+Prices in USD
+
+|Service|December 2023|December 2024|
+|-|-|-|
+|Total|$0.67|$6.53|
+|VPC|$0.00|$3.72|
+|Cloudwatch|$0.00|$0.00|
+|Route53|$0.505|$0.505|
+|EC2 Other|$0.06|$1.20|
+|S3|$0.00|$0.007|
+|Tax|$0.11|$1.09|
